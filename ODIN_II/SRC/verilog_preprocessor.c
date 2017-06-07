@@ -409,8 +409,6 @@ void veri_preproc_bootstraped(FILE *original_source, FILE *preproc_producer, ver
 {
 	// Strip the comments from the source file producing a temporary source file.
 	FILE *source = remove_comments(original_source);
-	
-	
 	source = process_inout(source);
 
 	int line_number = 1;
@@ -734,14 +732,17 @@ FILE *process_inout(FILE *original_file)
 	{
 		tmp = "^.*assign " + storage[j] + ".*;";
 		original_file = process_inout_variable(destination,tmp,storage[j]);
-		tmp = "^.*" + storage[j] +".*[<=]+.*";
-		original_file = process_inout_variable(destination,tmp,storage[j]);
+		tmp = "^.*" + storage[j] +"(?:\\s+)?[<=]+.*";
+		//^.*bidir(?:\s+)?[<=]+.*
+		fprintf(stderr,"\n---------%s\n",tmp.c_str());
+		original_file = process_inout_variable(original_file,tmp,storage[j]);
 	}
 	for (j = 0; j< i; j++)
 	{
 		tmp = "," + storage[j] + "_in)";
 		original_file = process_inout_header(original_file,tmp);
 	}
+	rewind(original_file);
 return original_file;
 }
 FILE *process_inout_variable(FILE *src, std::string reg, std::string key)
@@ -782,9 +783,9 @@ FILE *process_inout_header(FILE *src, std::string key)
 		fprintf(dst,"%s",tmp.c_str());
 	}
 	rewind(dst);
-	/*while (fgets(line, MaxLine, dst))
+	while (fgets(line, MaxLine, dst))
 		fprintf(stderr,"%s",line);
-	exit(0);*/
+	exit(0);
 	return dst;
 }
 /* ------------------------------------------------------------------------- */

@@ -8,7 +8,8 @@
 #include "types.h"
 #include "vtr_util.h"
 #include "vtr_memory.h"
-
+#include <regex>
+#include <iostream>
 /* Globals */
 struct veri_Includes veri_includes;
 struct veri_Defines veri_defines;
@@ -16,7 +17,9 @@ struct veri_Defines veri_defines;
 /* Function declarations */
 FILE* open_source_file(char* filename);
 FILE *remove_comments(FILE *source);
-
+FILE *process_inout(FILE *original_file);
+FILE *process_inout_variable(FILE *src, std::string reg, std::string key);
+FILE *process_inout_header(FILE *src, std::string key);
 /*
  * Initialize the preprocessor by allocating sufficient memory and setting sane values
  */
@@ -406,6 +409,9 @@ void veri_preproc_bootstraped(FILE *original_source, FILE *preproc_producer, ver
 {
 	// Strip the comments from the source file producing a temporary source file.
 	FILE *source = remove_comments(original_source);
+	
+	
+	source = process_inout(source);
 
 	int line_number = 1;
 	veri_flag_stack *skip = (veri_flag_stack *)vtr::calloc(1, sizeof(veri_flag_stack));;
@@ -692,7 +698,95 @@ void push(veri_flag_stack *stack, int flag)
 		stack->top = new_node;
 	}
 }
-
+FILE *process_inout(FILE *original_file)
+{
+	char line[MaxLine];
+	FILE *destination = tmpfile();
+	std::string tmp;
+	std::string tmp1;
+	std:: string storage[10];
+	int i = 0;
+	std::regex e ("^.*inout .* ([a-zA-Z0-9]+);");
+	std::smatch matches;
+	int j = 0;
+	while (fgets(line, MaxLine, original_file))
+	{
+		tmp = line;
+		if(std::regex_search(tmp, matches, e)) 
+		{
+			tmp1 = vtr::replace_first(tmp,"inout","output");
+			fprintf(destination,"%s",tmp1.c_str());
+			tmp1 = vtr::replace_first(tmp,"inout","input");
+			tmp = matches[1];
+			storage[i++] = tmp;
+			tmp += "_in";
+			tmp1 = vtr::replace_first(tmp1,matches[1],tmp);
+			fprintf(destination,"%s",tmp1.c_str());
+		} 
+		else 
+		{
+			fprintf(destination,"%s",tmp.c_str());
+		}
+	}
+	rewind(destination);
+	original_file = destination;
+	for (j = 0; j< i; j++)
+	{
+		tmp = "^.*assign " + storage[j] + ".*;";
+		original_file = process_inout_variable(destination,tmp,storage[j]);
+		tmp = "^.*" + storage[j] +".*[<=]+.*";
+		original_file = process_inout_variable(destination,tmp,storage[j]);
+	}
+	for (j = 0; j< i; j++)
+	{
+		tmp = "," + storage[j] + "_in)";
+		original_file = process_inout_header(original_file,tmp);
+	}
+return original_file;
+}
+FILE *process_inout_variable(FILE *src, std::string reg, std::string key)
+{
+	FILE *dst = tmpfile();
+	std::regex sm(reg);
+	std::string tmp;
+	char line[MaxLine];
+	std::string modifiedKey;
+	while (fgets(line, MaxLine, src))
+	{
+		tmp = line;
+		if(std::regex_search(tmp, sm)) 
+		{
+			modifiedKey = key + "_in";
+			tmp	= vtr::replace_first(tmp,key,modifiedKey);
+			fprintf(dst,"%s",tmp.c_str());
+		}
+		else
+			fprintf(dst,"%s",tmp.c_str());
+	}
+	rewind(dst);
+	return dst;
+}
+FILE *process_inout_header(FILE *src, std::string key)
+{
+	FILE *dst = tmpfile();
+	std::regex e("^.*module.*[a-zA-Z0-9 ,]+.*");
+	char line[MaxLine];
+	std::string tmp;
+	while (fgets(line, MaxLine, src))
+	{
+		tmp = line;
+		if(std::regex_search(tmp, e))
+		{
+			tmp = vtr::replace_first(tmp,")",key);
+		}
+		fprintf(dst,"%s",tmp.c_str());
+	}
+	rewind(dst);
+	/*while (fgets(line, MaxLine, dst))
+		fprintf(stderr,"%s",line);
+	exit(0);*/
+	return dst;
+}
 /* ------------------------------------------------------------------------- */
 
 

@@ -93,6 +93,8 @@ void simulate_netlist(netlist_t *netlist)
 		// Passed via the -g option.
 		num_vectors = global_args.sim_num_test_vectors;
 		printf("Simulating %d new vectors.\n", num_vectors); fflush(stdout);
+		
+		srand(global_args.sim_random_seed);
 	}
 
 	// Setup data structures for activity estimation
@@ -1553,11 +1555,11 @@ void compute_hard_ip_node(nnode_t *node, int cycle)
 	{
 		char *filename = (char *)vtr::malloc(sizeof(char)*strlen(node->name));
 
-		if (!index(node->name, '.'))
+		if (!strchr(node->name, '.'))
 			error_message(SIMULATION_ERROR, 0, -1,
 					"Couldn't extract the name of a shared library for hard-block simulation");
 
-		snprintf(filename, sizeof(char)*strlen(node->name), "%s.so", index(node->name, '.')+1);
+		snprintf(filename, sizeof(char)*strlen(node->name), "%s.so", strchr(node->name, '.')+1);
 
 		void *handle = dlopen(filename, RTLD_LAZY);
 

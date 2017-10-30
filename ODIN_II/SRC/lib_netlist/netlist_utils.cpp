@@ -51,11 +51,15 @@ nnode_t* allocate_nnode() {
 	new_node->num_input_pins = 0;
 	new_node->output_pins = NULL;
 	new_node->num_output_pins = 0;
+	new_node->inout_pins = NULL;
+	new_node->num_inout_pins = 0;
 
 	new_node->input_port_sizes = NULL;
 	new_node->num_input_port_sizes = 0;
 	new_node->output_port_sizes = NULL;
 	new_node->num_output_port_sizes = 0;
+	new_node->inout_port_sizes = NULL;
+	new_node->num_inout_port_sizes = 0;
 
 	new_node->node_data = NULL;
 	new_node->unique_node_data_id = -1;
@@ -109,9 +113,15 @@ nnode_t *free_nnode(nnode_t *to_free)
 
 		to_free->output_pins = (npin_t**)vtr::free(to_free->output_pins);
 
+		for (int i = 0; i < to_free->num_inout_pins; i++)
+			to_free->inout_pins[i] = (npin_t*)vtr::free(to_free->inout_pins[i]);
+
+		to_free->inout_pins = (npin_t**)vtr::free(to_free->inout_pins);
+		
 		vtr::free(to_free->input_port_sizes);
 		vtr::free(to_free->output_port_sizes);
 		vtr::free(to_free->undriven_pins);
+		vtr::free(to_free->inout_port_sizes);
 
 		/* now free the node */
 	}
@@ -180,6 +190,16 @@ void add_input_port_information(nnode_t *node, int port_width)
 	node->input_port_sizes = (int *)vtr::realloc(node->input_port_sizes, sizeof(int)*(node->num_input_port_sizes+1));
 	node->input_port_sizes[node->num_input_port_sizes] = port_width;
 	node->num_input_port_sizes++;
+}
+
+/*---------------------------------------------------------------------------------------------
+ * (function: add_inout_port_information)
+ *-------------------------------------------------------------------------------------------*/
+void add_inout_port_information(nnode_t *node, int port_width)
+{
+	node->inout_port_sizes = (int *)vtr::realloc(node->inout_port_sizes, sizeof(int)*(node->num_inout_port_sizes+1));
+	node->inout_port_sizes[node->num_inout_port_sizes] = port_width;
+	node->num_inout_port_sizes++;
 }
 
 /*---------------------------------------------------------------------------------------------

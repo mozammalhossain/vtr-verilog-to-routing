@@ -444,6 +444,11 @@ struct nnode_t_t
 	int *output_port_sizes; // info if there is ports
 	int num_output_port_sizes;
 
+	npin_t **inout_pins; // the inout pins
+	int num_inout_pins;
+	int *inout_port_sizes; // info about the inout ports
+	int num_inout_port_sizes;
+
 	short unique_node_data_id;
 	void *node_data; // this is a point where you can add additional data for your optimization or technique
 

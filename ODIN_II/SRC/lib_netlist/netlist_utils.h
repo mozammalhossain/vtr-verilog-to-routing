@@ -31,6 +31,7 @@ void add_output_pin_to_node(nnode_t *node, npin_t *pin, int pin_idx);
 void add_driver_pin_to_net(nnet_t *net, npin_t *pin);
 void add_output_port_information(nnode_t *node, int port_width);
 void add_input_port_information(nnode_t *node, int port_width);
+void add_inout_port_information(nnode_t *node, int port_width);
 
 void combine_nets(nnet_t *output_net, nnet_t* input_net, netlist_t *netlist);
 void join_nets(nnet_t *net, nnet_t* input_net);

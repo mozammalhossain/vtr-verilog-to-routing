@@ -45,10 +45,12 @@ STRING_CACHE *defines_for_file_sc;
 STRING_CACHE **defines_for_module_sc;
 STRING_CACHE *modules_inputs_sc;
 STRING_CACHE *modules_outputs_sc;
+STRING_CACHE *modules_inouts_sc;
 //for function
 STRING_CACHE **defines_for_function_sc;
 STRING_CACHE *functions_inputs_sc;
 STRING_CACHE *functions_outputs_sc;
+STRING_CACHE *functions_inouts_sc;
 
 STRING_CACHE *module_names_to_idx;
 
@@ -304,8 +306,10 @@ void init_parser_for_file()
 	/* create string caches to hookup PORTS with INPUT and OUTPUTs.  This is made per module and will be cleaned and remade at next_module */
 	modules_inputs_sc = sc_new_string_cache();
 	modules_outputs_sc = sc_new_string_cache();
+	modules_inouts_sc = sc_new_string_cache();
 	functions_inputs_sc = sc_new_string_cache();
 	functions_outputs_sc = sc_new_string_cache();
+	functions_inouts_sc = sc_new_string_cache();
 }
 
 /*---------------------------------------------------------------------------------------------
@@ -569,7 +573,13 @@ ast_node_t *markAndProcessSymbolListWith(ids top_type, ids id, ast_node_t *symbo
 				            found_match = TRUE;
 			            }
 
-			            if (found_match == FALSE)
+			            if ((sc_spot = sc_lookup_string(modules_inouts_sc, symbol_list->children[i]->children[0]->types.identifier)) != -1)
+			            {
+				            symbol_list->children[i]->types.variable.is_inout = TRUE;
+				            symbol_list->children[i]->children[0] = (ast_node_t*)modules_inouts_sc->data[sc_spot];
+				            found_match = TRUE;
+			            }
+						if (found_match == FALSE)
 			            {
 				            error_message(PARSE_ERROR, symbol_list->children[i]->line_number, current_parse_file, "No matching input declaration for port %s\n", symbol_list->children[i]->children[0]->types.identifier);
 			            }
@@ -636,7 +646,11 @@ ast_node_t *markAndProcessSymbolListWith(ids top_type, ids id, ast_node_t *symbo
 			            break;
 		            case INOUT:
 			            symbol_list->children[i]->types.variable.is_inout = TRUE;
-			            error_message(PARSE_ERROR, symbol_list->children[i]->children[0]->line_number, current_parse_file, "Odin does not handle inouts (%s)\n", symbol_list->children[i]->children[0]->types.identifier);
+			            if ((sc_spot = sc_add_string(modules_inouts_sc, symbol_list->children[i]->children[0]->types.identifier)) == -1)
+						{
+			            	error_message(PARSE_ERROR, symbol_list->children[i]->children[0]->line_number, current_parse_file, "Odin does not handle inouts (%s)\n", symbol_list->children[i]->children[0]->types.identifier);
+						}	
+			            modules_inouts_sc->data[sc_spot] = (void*)symbol_list->children[i];
 			            break;
 		            case WIRE:
 			            symbol_list->children[i]->types.variable.is_wire = TRUE;
@@ -754,7 +768,13 @@ ast_node_t *markAndProcessSymbolListWith(ids top_type, ids id, ast_node_t *symbo
 					        found_match = TRUE;
 				        }
 
-				        if (found_match == FALSE)
+				        if ((sc_spot = sc_lookup_string(functions_inouts_sc, symbol_list->children[i]->children[0]->types.identifier)) != -1)
+				        {
+					        symbol_list->children[i]->types.variable.is_inout = TRUE;
+					        symbol_list->children[i]->children[0] = (ast_node_t*)functions_inouts_sc->data[sc_spot];
+					        found_match = TRUE;
+				        }
+						if (found_match == FALSE)
 				        {
 					        error_message(PARSE_ERROR, symbol_list->children[i]->line_number, current_parse_file, "No matching input declaration for port %s\n", symbol_list->children[i]->children[0]->types.identifier);
 				        }
@@ -821,7 +841,12 @@ ast_node_t *markAndProcessSymbolListWith(ids top_type, ids id, ast_node_t *symbo
 				        break;
 			        case INOUT:
 				        symbol_list->children[i]->types.variable.is_inout = TRUE;
-				        error_message(PARSE_ERROR, symbol_list->children[i]->children[0]->line_number, current_parse_file, "Odin does not handle inouts (%s)\n", symbol_list->children[i]->children[0]->types.identifier);
+				        if ((sc_spot = sc_add_string(functions_inouts_sc, symbol_list->children[i]->children[0]->types.identifier)) == -1)
+						{
+				        	error_message(PARSE_ERROR, symbol_list->children[i]->children[0]->line_number, current_parse_file, "Odin does not handle inouts (%s)\n", symbol_list->children[i]->children[0]->types.identifier);
+						}
+        		        
+						functions_inouts_sc->data[sc_spot] = (void*)symbol_list->children[i];
 				        break;
 			        case WIRE:
 				        symbol_list->children[i]->types.variable.is_wire = TRUE;
